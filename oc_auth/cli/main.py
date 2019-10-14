@@ -1,8 +1,10 @@
 import logging
 import os
+import urllib3
 
 from ruamel import yaml
 from typing import Dict, Union
+import requests
 
 from .. import __version__
 from ..http import OpenshiftHttp
@@ -30,6 +32,8 @@ def get_args():
                    help='The name of the cluster in ~/.kube/config against which to authenticate (OPTIONAL)')
     p.add_argument('--credential', action='store', dest='cred', default='default',
                    help='The name of the credential in ~/.kube/config to update (OPTIONAL)')
+
+    p.add_argument('--insecure', action='store_const', dest='verify', const=False, default=True)
 
     return p.parse_args()
 
@@ -82,8 +86,14 @@ def get_cluster(kube_config, name) -> Cluster:
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     opts = get_args()
+
+    if not opts.verify:
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        requests.packages.urllib3.disable_warnings(category=urllib3.exceptions.InsecureRequestWarning)
+        logging.warning('Disabled TLS verification')
+        OpenshiftHttp.verify = False
 
     with open(os.path.expanduser('~/.kube/config'), 'r', encoding='utf-8') as f:
         kube_config = yaml.load(f, Loader=yaml.RoundTripLoader)
@@ -96,9 +106,10 @@ def main():
     user = get_user(kube_config, context['context']['user'])
     cluster = get_cluster(kube_config, context['context']['cluster'])
 
-    http = OpenshiftHttp(server=cluster['cluster']['server'], username=opts.username, password=opts.password)
+    http = OpenshiftHttp()
+    http.build_client(server=cluster['cluster']['server'], username=opts.username, password=opts.password)
 
-    user['user']['token'] = http.token
+    user['user']['token'] = http.token['access_token']
     if not user['name']:
         user['name'] = '{user}/auth'.format(user=opts.username)
 
