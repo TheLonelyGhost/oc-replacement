@@ -53,7 +53,8 @@ setup(
     },
     tests_require=testing_deps,
     install_requires=[
-        'PyYAML',
+        'ruamel.yaml',
         'requests',
+        'requests-oauthlib',
     ],
 )
