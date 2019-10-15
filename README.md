@@ -12,10 +12,10 @@ Required:
 
 ```shell
 # If using pipx
-$ pipx install git://github.com/thelonelyghost/oc-replacement.git#egg=oc-replacement
+$ pipx install oc-replacement
 
 # If not
-$ python3 -m pip install git://github.com/thelonelyghost/oc-replacement.git#egg=oc-replacement
+$ python3 -m pip install oc-replacement
 ```
 
 ## Authentication
