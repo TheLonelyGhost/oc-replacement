@@ -21,9 +21,15 @@ jobs:
         python -m venv ./venv
         source ./venv/bin/activate
         pip install --upgrade pip
-        pip install wheel
+        pip install --upgrade setuptools wheel
+        pip install --upgrade twine
         
         python setup.py bdist_wheel sdist
+
+        python3 -m twine upload dist/*
+      env:
+        TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
     - name: GitHub Releases
       uses: fnkr/github-action-ghr@v1.1
       env:
