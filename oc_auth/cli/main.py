@@ -104,7 +104,7 @@ def get_cluster(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     opts = get_args()
 
     if not opts.verify:
