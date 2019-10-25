@@ -2,12 +2,12 @@ import logging
 import os
 import urllib3
 
-from ruamel import yaml
 from typing import Dict, Union
 import requests
 
 from .. import __version__
 from ..http import OpenshiftHttp
+from ..kube_config import KubeConfig, KubeConfigDataSnippet
 
 from ._base import MyParser
 
@@ -38,14 +38,17 @@ def get_args():
     return p.parse_args()
 
 
-def get_context_mapping(kube_config, name=None, cluster=None, credential=None) -> Context:
-    if name == _missing:
-        name = kube_config.get('current-context')
+def get_context_mapping(kube_config: KubeConfig, name=None, cluster=None, credential=None) -> KubeConfigDataSnippet:
+    if name is _missing:
+        name = kube_config.data.value.get('current-context')
 
     if name:
-        for context in kube_config['contexts']:
-            if context['name'] == name:
-                return context
+        for config in kube_config.each_config():
+            if 'contexts' not in config.value:
+                continue
+            for context in config.value['contexts']:
+                if context['name'] == name:
+                    return KubeConfigDataSnippet(parent=config, data=context)
 
         if cluster and credential:
             context = {
@@ -57,15 +60,20 @@ def get_context_mapping(kube_config, name=None, cluster=None, credential=None) -
                 },
             }
             logging.warning('Missing kubectl context {!r}. Creating it from the info given'.format(name))
-            kube_config['contexts'].append(context)
+            for config in kube_config.each_config():
+                config.value['contexts'].append(context)
+                return KubeConfigDataSnippet(parent=config, data=context)
 
     raise RuntimeError('No context {!r} found in ~/.kube/config'.format(name))
 
 
-def get_user(kube_config, name) -> User:
-    for user in kube_config['users']:
-        if user['name'] == name:
-            return user
+def get_user(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
+    for config in kube_config.each_config():
+        if 'users' not in config.value:
+            continue
+        for user in config.value['users']:
+            if user['name'] == name:
+                return KubeConfigDataSnippet(parent=config, data=user)
 
     user = {
         'name': name,
@@ -73,14 +81,24 @@ def get_user(kube_config, name) -> User:
             'token': '',
         },
     }
-    kube_config['users'].append(user)
-    return user
+    logging.warning('Missing kubectl user {!r}. Creating it from the info given'.format(name))
+    for config in kube_config.each_config():
+        if 'users' not in config.value:
+            config.value['users'] = []
+        config.value['users'].append(user)
+        config.is_dirty = True
+        return KubeConfigDataSnippet(parent=config, data=user)
+
+    raise RuntimeError('No user {!r} found in ~/.kube/config'.format(name))
 
 
-def get_cluster(kube_config, name) -> Cluster:
-    for cluster in kube_config['clusters']:
-        if cluster['name'] == name:
-            return cluster
+def get_cluster(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
+    for config in kube_config.each_config():
+        if 'clusters' not in config.value:
+            continue
+        for cluster in config.value['clusters']:
+            if cluster['name'] == name:
+                return KubeConfigDataSnippet(parent=config, data=cluster)
 
     raise RuntimeError('No cluster {!r} found in ~/.kube/config'.format(name))
 
@@ -95,26 +113,24 @@ def main():
         logging.warning('Disabled TLS verification')
         OpenshiftHttp.verify = False
 
-    with open(os.path.expanduser('~/.kube/config'), 'r', encoding='utf-8') as f:
-        kube_config = yaml.load(f, Loader=yaml.RoundTripLoader)
+    kube_config = KubeConfig.find_from_env()
 
-    if opts.cred and opts.cluster:
-        context = get_context_mapping(kube_config, opts.context)
-    else:
-        context = get_context_mapping(kube_config, opts.context)
-
-    user = get_user(kube_config, context['context']['user'])
-    cluster = get_cluster(kube_config, context['context']['cluster'])
+    context = get_context_mapping(kube_config, opts.context)
+    user = get_user(kube_config, context.value['context']['user'])
+    cluster = get_cluster(kube_config, context.value['context']['cluster'])
 
     http = OpenshiftHttp()
-    http.build_client(server=cluster['cluster']['server'], username=opts.username, password=opts.password)
+    http.build_client(server=cluster.value['cluster']['server'], username=opts.username, password=opts.password)
 
-    user['user']['token'] = http.token['access_token']
-    if not user['name']:
-        user['name'] = '{user}/auth'.format(user=opts.username)
+    user.value['user']['token'] = http.token['access_token']
+    user.is_dirty = True
+    if not user.value['name']:
+        user.value['name'] = '{user}/auth'.format(user=opts.username)
+        user.is_dirty = True
 
-    with open(os.path.expanduser('~/.kube/config'), 'w', encoding='utf-8') as f:
-        yaml.dump(kube_config, f, Dumper=yaml.RoundTripDumper)
+    kube_config.persist(context)
+    kube_config.persist(user)
+    kube_config.persist(cluster)
 
 
 if __name__ == '__main__':
