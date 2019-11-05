@@ -103,21 +103,27 @@ def get_cluster(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
     raise RuntimeError('No cluster {!r} found in ~/.kube/config'.format(name))
 
 
+def disable_tls_verification():
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    requests.packages.urllib3.disable_warnings(category=urllib3.exceptions.InsecureRequestWarning)
+    logging.warning('Disabled TLS verification')
+    OpenshiftHttp.verify = False
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     opts = get_args()
-
-    if not opts.verify:
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-        requests.packages.urllib3.disable_warnings(category=urllib3.exceptions.InsecureRequestWarning)
-        logging.warning('Disabled TLS verification')
-        OpenshiftHttp.verify = False
 
     kube_config = KubeConfig.find_from_env()
 
     context = get_context_mapping(kube_config, opts.context)
     user = get_user(kube_config, context.value['context']['user'])
     cluster = get_cluster(kube_config, context.value['context']['cluster'])
+
+    if not opts.verify:
+        disable_tls_verification()
+    elif cluster.value['cluster'].get('insecure-skip-tls-verify'):
+        disable_tls_verification()
 
     http = OpenshiftHttp()
     http.build_client(server=cluster.value['cluster']['server'], username=opts.username, password=opts.password)
