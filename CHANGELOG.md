@@ -3,10 +3,10 @@
 We follow [Semantic Versioning](http://semver.org/) as a way of measuring stability of an update. This
 means we will never make a backwards-incompatible change within a major version of the project.
 
-## [UNRELEASED]
+## [0.3.0] - 2019-11-07
 
 - Uses the TLS verification settings already present in the kube config
-- Adds Windows support for path separation
+- Adds missing Windows support (path separation is different)
 
 ## [0.2.0] - 2019-10-25
 
