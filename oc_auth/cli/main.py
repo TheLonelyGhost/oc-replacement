@@ -116,7 +116,7 @@ def main():
     logging.basicConfig(level=opts.log_level, format='%(levelname)s: %(message)s')
     logging.debug('Given context: {}'.format(opts.context))
     logging.debug('Given cluster: {}'.format(opts.cluster))
-    logging.debug('Given credential: {}'.format(opts.credential))
+    logging.debug('Given credential: {}'.format(opts.cred))
     logging.debug('Given TLS verification: {}'.format('yes' if opts.verify else 'no'))
 
     kube_config = KubeConfig.find_from_env()

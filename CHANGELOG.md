@@ -3,6 +3,10 @@
 We follow [Semantic Versioning](http://semver.org/) as a way of measuring stability of an update. This
 means we will never make a backwards-incompatible change within a major version of the project.
 
+## [0.3.2] - 2019-11-07
+
+- Fixes typo in source code misspelling one of the properties we're trying to log the value of
+
 ## [0.3.1] - 2019-11-07
 
 - Missing `--verbose` flag to crank up the logging
