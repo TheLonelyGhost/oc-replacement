@@ -1,4 +1,5 @@
 import logging
+import platform
 import os
 from typing import Any, Dict, List, Iterator, Union
 
@@ -6,6 +7,12 @@ from ruamel import yaml
 
 
 _missing = object()
+_default_kube_config = os.path.expanduser('~/.kube/config')
+
+if platform.system() == 'Windows':
+    _path_separator = ';'
+else:
+    _path_separator = ':'
 
 
 class KubeConfigData(object):
@@ -55,7 +62,7 @@ class KubeConfigDataSnippet(KubeConfigData):
 
 
 class KubeConfig(object):
-    def __init__(self, config_files: List[str] = [os.path.expanduser('~/.kube/config')]):
+    def __init__(self, config_files: List[str] = [_default_kube_config]):
         self.configs: List[KubeConfigData] = []
         for filename in config_files:
             if not filename:
@@ -66,8 +73,8 @@ class KubeConfig(object):
 
     @classmethod
     def find_from_env(cls):
-        path = os.environ.get('KUBECONFIG', os.path.expanduser('~/.kube/config'))
-        files = path.split(':')
+        path = os.environ.get('KUBECONFIG', _default_kube_config)
+        files = path.split(_path_separator)
         return cls(config_files=files)
 
     @property

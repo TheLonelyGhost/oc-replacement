@@ -6,6 +6,7 @@ means we will never make a backwards-incompatible change within a major version 
 ## [UNRELEASED]
 
 - Uses the TLS verification settings already present in the kube config
+- Adds Windows support for path separation
 
 ## [0.2.0] - 2019-10-25
 
