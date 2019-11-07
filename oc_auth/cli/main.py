@@ -34,11 +34,12 @@ def get_args():
                    help='The name of the credential in ~/.kube/config to update (OPTIONAL)')
 
     p.add_argument('--insecure', action='store_const', dest='verify', const=False, default=True)
+    p.add_argument('--verbose', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO)
 
     return p.parse_args()
 
 
-def get_context_mapping(kube_config: KubeConfig, name=None, cluster=None, credential=None) -> KubeConfigDataSnippet:
+def get_context_mapping(kube_config: KubeConfig, name=_missing, cluster=None, credential=None) -> KubeConfigDataSnippet:
     if name is _missing:
         name = kube_config.data.value.get('current-context')
 
@@ -111,8 +112,12 @@ def disable_tls_verification():
 
 
 def main():
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     opts = get_args()
+    logging.basicConfig(level=opts.log_level, format='%(levelname)s: %(message)s')
+    logging.debug('Given context: {}'.format(opts.context))
+    logging.debug('Given cluster: {}'.format(opts.cluster))
+    logging.debug('Given credential: {}'.format(opts.credential))
+    logging.debug('Given TLS verification: {}'.format('yes' if opts.verify else 'no'))
 
     kube_config = KubeConfig.find_from_env()
 
