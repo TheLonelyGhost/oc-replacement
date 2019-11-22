@@ -45,6 +45,8 @@ def get_context_mapping(kube_config: KubeConfig, name=_missing, cluster=None, cr
 
     if name:
         for config in kube_config.each_config():
+            if not config.value:
+                continue
             if 'contexts' not in config.value:
                 continue
             for context in config.value['contexts']:
@@ -70,6 +72,8 @@ def get_context_mapping(kube_config: KubeConfig, name=_missing, cluster=None, cr
 
 def get_user(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
     for config in kube_config.each_config():
+        if not config.value:
+            continue
         if 'users' not in config.value:
             continue
         for user in config.value['users']:
@@ -84,6 +88,8 @@ def get_user(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
     }
     logging.warning('Missing kubectl user {!r}. Creating it from the info given'.format(name))
     for config in kube_config.each_config():
+        if not config.value:
+            continue
         if 'users' not in config.value:
             config.value['users'] = []
         config.value['users'].append(user)
@@ -95,6 +101,8 @@ def get_user(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
 
 def get_cluster(kube_config: KubeConfig, name: str) -> KubeConfigDataSnippet:
     for config in kube_config.each_config():
+        if not config.value:
+            continue
         if 'clusters' not in config.value:
             continue
         for cluster in config.value['clusters']:
